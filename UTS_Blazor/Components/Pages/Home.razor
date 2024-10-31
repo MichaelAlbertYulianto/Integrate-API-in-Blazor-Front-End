@@ -1,0 +1,190 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+@using UTS_Blazor.Services
+@inject ApiService ApiService
+@using UTS_Blazor.Models
+@inject CourseService CourseService
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+<h3>Courses Catalog</h3>
+
+<div class="search-bar mb-4">
+    <input type="text" @bind="searchTerm" @oninput="SearchCourses" placeholder="Search by course name or category" class="search-input" />
+</div>
+
+@if (pagedCourses != null && pagedCourses.Any())
+{
+    <div class="catalog-grid">
+        @foreach (var course in pagedCourses)
+        {
+            <div class="catalog-card">
+                <div class="content">
+                    <img src="@(string.IsNullOrWhiteSpace(course.ImageName) ? "images/default1.png" : $"images/{course.ImageName}")"
+                         class="catalog-image"
+                         onerror="this.onerror=null; this.src='images/default1.png';" />
+                    <h4>@course.Name</h4>
+                    <p>Duration: @course.Duration hours</p>
+                    <p>@course.Description</p>
+                </div>
+
+                <div class="category-box">
+                    <p>@course.Category?.Name</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pagination">
+        <button @onclick="PreviousPage" disabled="@(!CanGoToPreviousPage)">Previous</button>
+        <span>Page @currentPage of @totalPages</span>
+        <button @onclick="NextPage" disabled="@(!CanGoToNextPage)">Next</button>
+    </div>
+}
+else
+{
+    <p>Loading courses...</p>
+}
+
+@code {
+    private List<Course> courses;
+    private List<Course> pagedCourses;
+    private string searchTerm = "";
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)FilteredCourses.Count / pageSize);
+
+    private List<Course> FilteredCourses => string.IsNullOrWhiteSpace(searchTerm)
+        ? courses
+        : courses.Where(c => (c.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                             (c.Category?.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourses();
+        UpdatePagedCourses();
+    }
+
+    private async Task LoadCourses()
+    {
+        courses = await CourseService.GetCoursesAsync();
+        UpdatePagedCourses();
+    }
+
+    private void UpdatePagedCourses()
+    {
+        pagedCourses = FilteredCourses
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void NextPage()
+    {
+        if (CanGoToNextPage)
+        {
+            currentPage++;
+            UpdatePagedCourses();
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (CanGoToPreviousPage)
+        {
+            currentPage--;
+            UpdatePagedCourses();
+        }
+    }
+
+    private void SearchCourses(ChangeEventArgs e)
+    {
+        currentPage = 1; // Reset to the first page on new search
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        UpdatePagedCourses();
+    }
+
+    private bool CanGoToNextPage => currentPage < totalPages;
+    private bool CanGoToPreviousPage => currentPage > 1;
+}
+
+<style>
+    .search-bar {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .search-input {
+        width: 100%;
+        max-width: 400px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .catalog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        padding: 16px;
+        justify-items: center;
+    }
+
+    .catalog-card {
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        max-width: 300px; /* Set a maximum width */
+    }
+
+
+        .catalog-card h4 {
+            margin: 8px 0;
+            font-size: 1.2em;
+        }
+
+        .catalog-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+    .catalog-image {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 16px;
+    }
+
+        .pagination button {
+            margin: 0 10px;
+            padding: 8px 12px;
+        }
+
+        .pagination span {
+            font-weight: bold;
+        }
+
+    .category-box {
+        background-color: #e0e0e0;
+        padding: 8px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: bold;
+        margin-top: 8px;
+        color: #333;
+    }
+</style>

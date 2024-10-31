@@ -1,0 +1,43 @@
+﻿@page "/categories/create"
+@using UTS_Blazor.Models
+@using UTS_Blazor.Services
+@inject CategoryService CategoryService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3 class="text-2xl font-bold mb-4">Add New Category</h3>
+
+<form @onsubmit="HandleValidSubmit" class="space-y-4">
+    <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">Category Name:</label>
+        <input id="name" type="text" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="@newCategory.Name" required />
+    </div>
+
+    <div>
+        <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+        <textarea id="description" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="@newCategory.Description" required></textarea>
+    </div>
+
+    <div class="flex space-x-4">
+        <button type="submit" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded">Save</button>
+        <button type="button" @onclick="Cancel" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded">Cancel</button>
+    </div>
+</form>
+
+@code {
+    private Category newCategory = new Category();
+
+    private async Task HandleValidSubmit()
+    {
+        // Call the API to add the new category
+        await CategoryService.AddCategoryAsync(newCategory);
+
+        // Navigate back to the categories page after saving
+        NavigationManager.NavigateTo("/categories");
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/categories");
+    }
+}

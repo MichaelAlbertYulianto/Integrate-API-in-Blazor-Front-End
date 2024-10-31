@@ -1,0 +1,64 @@
+﻿@page "/categories/edit/{categoryId:int}"
+@using UTS_Blazor.Models
+@using UTS_Blazor.Services
+@inject CategoryService CategoryService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3 class="text-2xl font-bold mb-4">Edit Category</h3>
+
+@if (category != null)
+{
+    <form class="space-y-4">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">Category Name:</label>
+            <input id="name" type="text" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="category.Name" required />
+        </div>
+
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+            <textarea id="description" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="category.Description" required></textarea>
+        </div>
+
+        <div class="flex space-x-4">
+            <button type="button" @onclick="HandleValidSubmit" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded">Save</button>
+            <button type="button" @onclick="Cancel" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded">Cancel</button>
+        </div>
+    </form>
+}
+else
+{
+    <p>Loading category...</p>
+}
+
+@code {
+    [Parameter] public int categoryId { get; set; }
+    private Category category;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load the category details from the API based on the provided ID
+        category = await CategoryService.GetCategoryByIdAsync(categoryId);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            // Call the API to update the category
+            await CategoryService.UpdateCategoryAsync(category);
+
+            // Navigate back to the categories page after saving
+            NavigationManager.NavigateTo("/categories");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating category: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/categories");
+    }
+}

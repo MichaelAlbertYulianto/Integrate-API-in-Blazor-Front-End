@@ -1,0 +1,113 @@
+﻿@page "/courses"
+@inject NavigationManager NavigationManager
+@using UTS_Blazor.Services
+@inject CourseService CourseService
+@using UTS_Blazor.Models
+@rendermode InteractiveServer
+
+<h3 class="text-2xl font-bold mb-4">Courses Management</h3>
+
+<div class="flex items-center space-x-4 mb-4">
+    <button class="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700" @onclick="CreateNewCourse">Add New Course</button>
+    <input type="text" placeholder="Search courses..." @bind-value="searchTerm" @oninput="UpdateFilteredCourses" class="p-2 border border-gray-300 rounded w-1/3" />
+</div>
+
+@if (filteredCourses != null && filteredCourses.Any())
+{
+    <table class="course-table w-full border-collapse mt-4">
+        <thead>
+            <tr>
+                <th class="border px-4 py-2">Course ID</th>
+                <th class="border px-4 py-2">Name</th>
+                <th class="border px-4 py-2">Image</th>
+                <th class="border px-4 py-2">Duration (hrs)</th>
+                <th class="border px-4 py-2">Description</th>
+                <th class="border px-4 py-2">Category</th>
+                <th class="border px-4 py-2">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var course in filteredCourses)
+            {
+                <tr>
+                    <td class="border px-4 py-2">@course.courseId</td>
+                    <td class="border px-4 py-2">@course.Name</td>
+                    <td class="border px-4 py-2">
+                        <img src="@(string.IsNullOrWhiteSpace(course.ImageName) ? "images/default1.png" : $"images/{course.ImageName}")"
+                             class="w-16 h-auto rounded"
+                             onerror="this.onerror=null; this.src='images/default1.png';" />
+                    </td>
+                    <td class="border px-4 py-2">@course.Duration</td>
+                    <td class="border px-4 py-2">@course.Description</td>
+                    <td class="border px-4 py-2">@course.Category?.Name</td>
+                    <td class="border px-4 py-2">
+                        <button class="bg-yellow-500 text-white py-1 px-3 rounded hover:bg-yellow-700" @onclick="() => EditCourse(course.courseId)">Edit</button>
+                        <button class="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-700" @onclick="() => DeleteCourse(course.courseId)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No courses found.</p>
+}
+
+@code {
+    private List<Course> courses; // Full list of courses
+    private List<Course> filteredCourses; // Filtered list based on search term
+    private string searchTerm = ""; // Search term entered by the user
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourses();
+    }
+
+    private async Task LoadCourses()
+    {
+        courses = await CourseService.GetCoursesAsync();
+        filteredCourses = courses; // Initially, show all courses
+    }
+
+    private void UpdateFilteredCourses(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty; // Update searchTerm
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredCourses = courses; // Show all courses if search term is empty
+        }
+        else
+        {
+            filteredCourses = courses.Where(c =>
+                (c.Name != null && c.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (c.Category?.Name != null && c.Category.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (c.Description != null && c.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+    }
+
+    private void CreateNewCourse()
+    {
+        NavigationManager.NavigateTo("/courses/create");
+    }
+
+    private void EditCourse(int courseId)
+    {
+        NavigationManager.NavigateTo($"/courses/edit/{courseId}");
+    }
+
+    private async Task DeleteCourse(int courseId)
+    {
+        try
+        {
+            await CourseService.DeleteCourseAsync(courseId);
+            await LoadCourses(); // Refresh the course list after deletion
+            UpdateFilteredCourses(new ChangeEventArgs { Value = searchTerm }); // Reapply filter after reloading courses
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error deleting course with ID {courseId}: {ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,98 @@
+﻿@page "/courses/create"
+@using UTS_Blazor.Models
+@using UTS_Blazor.Services
+@inject CourseService CourseService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3 class="text-2xl font-bold mb-4">Create New Course</h3>
+
+<form @onsubmit="HandleValidSubmit" class="space-y-4">
+    <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">Course Name:</label>
+        <input id="name" type="text" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="@newCourse.Name" required />
+    </div>
+
+    <div>
+        <label for="image" class="block text-sm font-medium text-gray-700">Image:</label>
+        <InputFile id="image" OnChange="HandleFileSelected" class="mt-1 block w-full p-2 border border-gray-300 rounded" />
+        <span class="text-sm text-gray-500">Upload an image file for the course.</span>
+    </div>
+
+    <div>
+        <label for="duration" class="block text-sm font-medium text-gray-700">Duration (hours):</label>
+        <input id="duration" type="number" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="@newCourse.Duration" required />
+    </div>
+
+    <div>
+        <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+        <textarea id="description" class="mt-1 block w-full p-2 border border-gray-300 rounded" @bind="@newCourse.Description" required></textarea>
+    </div>
+
+    <div>
+        <label for="category" class="block text-sm font-medium text-gray-700">Category:</label>
+        <select id="category" @bind="@newCourse.CategoryId" class="mt-1 block w-full p-2 border border-gray-300 rounded">
+            <option value="">Select a category</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.CategoryId">@category.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="flex space-x-4">
+        <button type="submit" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded">Save</button>
+        <button type="button" @onclick="Cancel" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded">Cancel</button>
+    </div>
+</form>
+
+@code {
+    private Course newCourse = new Course
+        {
+            Category = new Category()  // Ensure Category is initialized
+        };
+
+    private List<Category> categories = new List<Category>(); // List to hold categories
+    private IBrowserFile selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch categories from the API when the component is initialized
+        categories = await CourseService.GetCategoriesAsync();
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (selectedFile != null)
+        {
+            // Ensure the wwwroot/images directory exists before saving
+            var directoryPath = Path.Combine("wwwroot/images");
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            var filePath = Path.Combine(directoryPath, selectedFile.Name);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await selectedFile.OpenReadStream().CopyToAsync(fileStream);
+            }
+
+            // Set the image name to be sent to the API
+            newCourse.ImageName = selectedFile.Name;
+        }
+
+        await CourseService.AddCourseAsync(newCourse);
+        NavigationManager.NavigateTo("/courses");  // Navigate back to courses page after saving
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/courses");
+    }
+}
