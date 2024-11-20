@@ -50,6 +50,11 @@ namespace UTS_Blazor.Services
             await _httpClient.DeleteAsync($"https://actualbackendapp.azurewebsites.net/api/v1/Categories/{id}");
         }
 
+        public async Task GetCourseByNameAsync(string name)
+        {
+            await _httpClient.GetFromJsonAsync<Course>($"https://actualbackendapp.azurewebsites.net/api/Courses/search/{name}");
+        }
+
         // Similarly, you can add methods for Course CRUD operations.
     }
 }

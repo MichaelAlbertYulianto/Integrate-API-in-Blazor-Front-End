@@ -70,22 +70,29 @@ else
         filteredCourses = courses; // Initially, show all courses
     }
 
-    private void UpdateFilteredCourses(ChangeEventArgs e)
+    private async Task UpdateFilteredCourses(EventArgs e)
     {
-        searchTerm = e.Value?.ToString() ?? string.Empty; // Update searchTerm
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
             filteredCourses = courses; // Show all courses if search term is empty
         }
         else
         {
-            filteredCourses = courses.Where(c =>
-                (c.Name != null && c.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (c.Category?.Name != null && c.Category.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (c.Description != null && c.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
-            ).ToList();
+            try
+            {
+                // Use the new API to fetch courses by name
+                filteredCourses = await CourseService.GetCourseByNameAsync(searchTerm);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error fetching courses by name: {ex.Message}");
+                filteredCourses = new List<Course>(); // Reset to an empty list in case of an error
+            }
         }
+
+        StateHasChanged(); // Ensure the UI updates after filtering
     }
+
 
     private void CreateNewCourse()
     {
@@ -103,7 +110,7 @@ else
         {
             await CourseService.DeleteCourseAsync(courseId);
             await LoadCourses(); // Refresh the course list after deletion
-            UpdateFilteredCourses(new ChangeEventArgs { Value = searchTerm }); // Reapply filter after reloading courses
+            UpdateFilteredCourses(new ChangeEventArgs { Value = searchTerm });
         }
         catch (Exception ex)
         {

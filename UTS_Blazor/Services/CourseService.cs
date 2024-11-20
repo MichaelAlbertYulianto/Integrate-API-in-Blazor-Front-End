@@ -15,6 +15,7 @@ namespace UTS_Blazor.Services
             _httpClient = httpClient;
         }
 
+
         public async Task<List<Course>> GetCoursesAsync()
         {
             return await _httpClient.GetFromJsonAsync<List<Course>>("https://actualbackendapp.azurewebsites.net/api/Courses");
@@ -24,7 +25,10 @@ namespace UTS_Blazor.Services
         {
             return await _httpClient.GetFromJsonAsync<Course>($"https://actualbackendapp.azurewebsites.net/api/Courses/{id}");
         }
-
+        public async Task<List<Course>> GetCourseByNameAsync(string name)
+        {
+            return await _httpClient.GetFromJsonAsync<List<Course>>($"https://actualbackendapp.azurewebsites.net/api/Courses/search/{name}");
+        }
         public async Task AddCourseAsync(Course course)
         {
             await _httpClient.PostAsJsonAsync("https://actualbackendapp.azurewebsites.net/api/Courses", course);
